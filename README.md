@@ -17,28 +17,6 @@ The gateway includes:
 
 > This is a compact educational Raft implementation designed to demonstrate leader election, RequestVote, AppendEntries, majority commit, replicated logs, failover, and recovery. It is not a replacement for a production-hardened consensus library.
 
-## Architecture
-
-```mermaid
-flowchart LR
-    C[Client] --> G[API Gateway]
-    G -->|FNV-1a shard routing| S0[Shard 0]
-    G --> S1[Shard 1]
-    G --> S2[Shard 2]
-    G --> S3[Shard 3]
-
-    subgraph S0[Shard 0 - Raft Group]
-      L0[Leader - SQLite WAL]
-      F01[Follower - SQLite WAL]
-      F02[Follower - SQLite WAL]
-      L0 -->|AppendEntries| F01
-      L0 -->|AppendEntries| F02
-    end
-
-    G --> M[/metrics]
-    G --> H[/healthz]
-```
-
 Each shard is an independent three-replica Raft group. A write is acknowledged only after a majority stores the log entry. Reads are served by the current shard leader. Each replica persists its key-value state, Raft log, term, vote, and commit index in its own SQLite database.
 
 ## What this repository proves
