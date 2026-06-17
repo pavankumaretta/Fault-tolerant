@@ -1,0 +1,12 @@
+/build/
+/data/
+/demo-data/
+*.db
+*.db-shm
+*.db-wal
+.env
+.DS_Store
+__pycache__/
+*.pyc
+.vscode/
+.idea/

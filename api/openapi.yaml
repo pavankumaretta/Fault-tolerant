@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: Fault-Tolerant Sharded Key-Value Store API
+  version: 1.0.0
+  description: >-
+    HTTP API for a C++ sharded key-value store with Raft replication,
+    SQLite persistence, rate limiting, retries, circuit breakers, and metrics.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /healthz:
+    get:
+      security: []
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /metrics:
+    get:
+      security: []
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Prometheus text exposition
+          content:
+            text/plain:
+              schema:
+                type: string
+  /v1/kv/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 512
+      - name: X-Client-Id
+        in: header
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Read a key from its shard leader
+      responses:
+        '200':
+          description: Key found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    put:
+      summary: Replicate and commit a value
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '201':
+          description: Value committed by a majority
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WriteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Value exceeds 1 MiB
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      summary: Replicate and commit a delete command
+      responses:
+        '200':
+          description: Delete committed by a majority
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WriteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /admin/cluster:
+    get:
+      summary: Inspect shards, leaders, replicas, terms, and commit indexes
+      responses:
+        '200':
+          description: Cluster state
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /admin/fail/{shard}/{replica}:
+    post:
+      summary: Mark a replica offline for failure testing
+      parameters:
+        - $ref: '#/components/parameters/Shard'
+        - $ref: '#/components/parameters/Replica'
+      responses:
+        '200':
+          description: Replica marked offline
+        '404':
+          description: Shard or replica not found
+  /admin/recover/{shard}/{replica}:
+    post:
+      summary: Recover and synchronize a replica
+      parameters:
+        - $ref: '#/components/parameters/Shard'
+        - $ref: '#/components/parameters/Replica'
+      responses:
+        '200':
+          description: Replica recovered
+        '404':
+          description: Shard or replica not found
+  /admin/elect/{shard}:
+    post:
+      summary: Trigger leader election for a shard
+      parameters:
+        - $ref: '#/components/parameters/Shard'
+      responses:
+        '200':
+          description: Leader elected
+        '503':
+          description: A majority was unavailable
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    Shard:
+      name: shard
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+    Replica:
+      name: replica
+      in: path
+      required: true
+      schema:
+        type: string
+        example: s0-r0
+  schemas:
+    WriteResponse:
+      type: object
+      required: [status, key, shard, leader]
+      properties:
+        status:
+          type: string
+        key:
+          type: string
+        shard:
+          type: integer
+        leader:
+          type: string
+    ReadResponse:
+      allOf:
+        - $ref: '#/components/schemas/WriteResponse'
+        - type: object
+          required: [value]
+          properties:
+            value:
+              type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        key:
+          type: string
+        shard:
+          type: integer
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Key not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Token bucket exhausted
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unavailable:
+      description: No quorum or circuit breaker open
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

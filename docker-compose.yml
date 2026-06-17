@@ -1,0 +1,18 @@
+services:
+  kvstore:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      KV_API_KEY: ${KV_API_KEY:-dev-secret}
+      KV_SHARDS: ${KV_SHARDS:-4}
+      KV_REPLICAS: ${KV_REPLICAS:-3}
+      KV_RATE_PER_SECOND: ${KV_RATE_PER_SECOND:-20}
+      KV_BURST: ${KV_BURST:-40}
+      KV_RETRIES: ${KV_RETRIES:-2}
+    volumes:
+      - kv-data:/var/lib/kvstore
+    restart: unless-stopped
+
+volumes:
+  kv-data:

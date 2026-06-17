@@ -1,0 +1,8 @@
+build
+data
+demo-data
+.git
+.github
+*.db
+*.db-shm
+*.db-wal

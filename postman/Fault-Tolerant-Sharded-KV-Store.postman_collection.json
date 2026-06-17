@@ -1,0 +1,60 @@
+{
+  "info": {
+    "_postman_id": "a4bfe35a-308b-4d0d-9ed1-2e8d55720e32",
+    "name": "Fault-Tolerant Sharded KV Store",
+    "description": "CRUD, observability, leader failure, recovery, and cluster inspection requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {"key": "token", "value": "{{apiKey}}", "type": "string"}
+    ]
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8080"},
+    {"key": "apiKey", "value": "dev-secret"},
+    {"key": "key", "value": "user:42"},
+    {"key": "shard", "value": "0"},
+    {"key": "replica", "value": "s0-r0"}
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {"auth": {"type": "noauth"}, "method": "GET", "url": "{{baseUrl}}/healthz"}
+    },
+    {
+      "name": "Put key",
+      "request": {
+        "method": "PUT",
+        "header": [{"key": "X-Client-Id", "value": "postman"}, {"key": "Content-Type", "value": "text/plain"}],
+        "body": {"mode": "raw", "raw": "active"},
+        "url": "{{baseUrl}}/v1/kv/{{key}}"
+      }
+    },
+    {
+      "name": "Get key",
+      "request": {"method": "GET", "header": [{"key": "X-Client-Id", "value": "postman"}], "url": "{{baseUrl}}/v1/kv/{{key}}"}
+    },
+    {
+      "name": "Delete key",
+      "request": {"method": "DELETE", "url": "{{baseUrl}}/v1/kv/{{key}}"}
+    },
+    {
+      "name": "Cluster state",
+      "request": {"method": "GET", "url": "{{baseUrl}}/admin/cluster"}
+    },
+    {
+      "name": "Fail replica",
+      "request": {"method": "POST", "url": "{{baseUrl}}/admin/fail/{{shard}}/{{replica}}"}
+    },
+    {
+      "name": "Recover replica",
+      "request": {"method": "POST", "url": "{{baseUrl}}/admin/recover/{{shard}}/{{replica}}"}
+    },
+    {
+      "name": "Metrics",
+      "request": {"auth": {"type": "noauth"}, "method": "GET", "url": "{{baseUrl}}/metrics"}
+    }
+  ]
+}
