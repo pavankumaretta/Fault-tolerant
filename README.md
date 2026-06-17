@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/pavankumaretta/fault-tolerant-sharded-kv-store/actions/workflows/ci.yml/badge.svg)](https://github.com/pavankumaretta/fault-tolerant-sharded-kv-store/actions/workflows/ci.yml)
 
-A GitHub-ready distributed-systems project built with **C++20, Raft consensus concepts, and SQLite**. The service partitions keys across shards, replicates every write to a majority of replicas, automatically elects a replacement leader after failure, and exposes the cluster through a resilient HTTP API gateway.
+A distributed-systems project built with **C++20, Raft consensus concepts, and SQLite**. The service partitions keys across shards, replicates every write to a majority of replicas, automatically elects a replacement leader after failure, and exposes the cluster through a resilient HTTP API gateway.
 
 The gateway includes:
 
